@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mon Chat</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #ece5dd;
+    }
+
+    h1 {
+      margin: 0;
+      background: #075e54;
+      color: white;
+      padding: 14px;
+      font-size: 18px;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .msg {
+      max-width: 75%;
+      padding: 8px 12px;
+      margin: 6px 0;
+      border-radius: 12px;
+      word-wrap: break-word;
+    }
+
+    .nom { font-size: 12px; color: #075e54; font-weight: bold; }
+    .moi { background: #dcf8c6; margin-left: auto; }
+    .autre { background: white; }
+
+    #barre {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: #f0f0f0;
+    }
+
+    #texte {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+    }
+
+    #envoyer {
+      background: #075e54;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      font-size: 16px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>💬 Mon Chat</h1>
+
+  <div id="messages"></div>
+
+  <div id="barre">
+    <input id="texte" placeholder="Écris un message...">
+    <button id="envoyer">Envoyer</button>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+  <script>
+    // 1. Ta configuration Firebase (À REMPLACER par la tienne)
+    const firebaseConfig = {
+      apiKey: "TA_CLE_API",
+      authDomain: "ton-projet.firebaseapp.com",
+      databaseURL: "https://ton-projet-default-rtdb.firebaseio.com",
+      projectId: "ton-projet",
+      storageBucket: "ton-projet.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "TON_APP_ID"
+    };
+
+    // 2. Démarrage de Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const refMessages = db.ref("messages");
+
+    // 3. Ton prénom (demandé une seule fois)
+    let monNom = localStorage.getItem("nom");
+    if (!monNom) {
+      monNom = prompt("Ton prénom ?") || "Anonyme";
+      localStorage.setItem("nom", monNom);
+    }
+
+    // 4. Éléments de la page
+    const zone = document.getElementById("messages");
+    const champ = document.getElementById("texte");
+    const bouton = document.getElementById("envoyer");
+
+    // 5. Afficher une bulle
+    function afficher(nom, texte, deMoi) {
+      const bulle = document.createElement("div");
+      bulle.className = "msg " + (deMoi ? "moi" : "autre");
+
+      if (!deMoi) {
+        const etiquette = document.createElement("div");
+        etiquette.className = "nom";
+        etiquette.textContent = nom;
+        bulle.appendChild(etiquette);
+      }
+
+      const contenu = document.createElement("div");
+      contenu.textContent = texte;
+      bulle.appendChild(contenu);
+
+      zone.appendChild(bulle);
+      zone.scrollTop = zone.scrollHeight;
+    }
+
+    // 6. Envoyer un message vers Firebase
+    function envoyer() {
+      const texte = champ.value.trim();
+      if (texte === "") return;
+      refMessages.push({ nom: monNom, texte: texte, heure: Date.now() });
+      champ.value = "";
+    }
+
+    // 7. Recevoir les messages en temps réel
+    refMessages.limitToLast(50).on("child_added", function (snap) {
+      const m = snap.val();
+      afficher(m.nom, m.texte, m.nom === monNom);
+    });
+
+    // 8. Bouton et touche Entrée
+    bouton.onclick = envoyer;
+    champ.onkeydown = function (e) {
+      if (e.key === "Enter") envoyer();
+    };
+  </script>
+</body>
+</html>
